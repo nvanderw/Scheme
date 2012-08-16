@@ -2,7 +2,7 @@ module Language.Scheme.Eval where
 
 import Prelude hiding (lookup)
 
-import Data.List (foldr, unfoldr)
+import Data.List (foldr, unfoldr, intercalate)
 import qualified Data.Map as Map
 import Data.Maybe (isNothing, fromJust)
 import Data.IORef
@@ -56,6 +56,22 @@ isFunc _ = False
 isNil :: SData -> Bool
 isNil SNil = True
 isNil _ = False
+
+-- Pretty-prints an SData
+pretty :: SData -> String
+pretty (SInt n) = show n
+pretty (SBool b) = if b == True then "#t" else "#f"
+pretty (SString s) = show s
+pretty (SIdent s) = s
+pretty (SFunc binds _ body) = "(lambda " ++ (pretty . fromList . map SIdent $ binds) ++
+                              " " ++ (pretty body) ++ ")"
+pretty (SQuote d) = pretty d
+pretty xs = -- For SPair or SNil
+    if isList xs
+      then let ys = toList xs
+             in "(" ++ (intercalate " " . map pretty $ ys) ++ ")"
+      else let (SPair a b) = xs
+             in "(" ++ (pretty a) ++ " . " ++ (pretty b) ++ ")"
 
 -- Builtins
 quote :: SBuiltin
