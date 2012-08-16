@@ -10,7 +10,7 @@ import Data.Text.Lazy (Text)
 import Language.Scheme.Types
 
 sexpr :: Parsec Text u SData 
-sexpr = (try atom) <|> (try pair) <|> (try list)
+sexpr = quoted <|> (try atom) <|> (try pair) <|> (try list)
 
 -- Pair syntax (car . cdr)
 pair :: Parsec Text u SData
@@ -53,3 +53,6 @@ str = do
 
 nil :: Parsec Text u SData
 nil = char '(' >> char ')' >> return SNil
+
+quoted :: Parsec Text u SData
+quoted = char '\'' >> (liftM SQuote sexpr)
