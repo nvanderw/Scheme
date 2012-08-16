@@ -19,4 +19,4 @@ main = do
       Right parsed -> do
         result <- runReaderT (eval parsed) (return Map.empty)
         putStrLn . pretty $ result
-      Left error -> hPutStrLn stderr . show $ error
+      Left err -> hPrint stderr err

@@ -60,16 +60,16 @@ isNil _ = False
 -- Pretty-prints an SData
 pretty :: SData -> String
 pretty (SInt n) = show n
-pretty (SBool b) = if b == True then "#t" else "#f"
+pretty (SBool b) = if b then "#t" else "#f"
 pretty (SString s) = show s
 pretty (SIdent s) = s
 pretty (SFunc binds _ body) = "(lambda " ++ (pretty . fromList . map SIdent $ binds) ++
-                              " " ++ (pretty body) ++ ")"
+                              " " ++ pretty body ++ ")"
 pretty (SQuote d) = pretty d
 pretty xs = -- For SPair or SNil
     if isList xs
       then let ys = toList xs
-             in "(" ++ (intercalate " " . map pretty $ ys) ++ ")"
+             in "(" ++ (unwords . map pretty $ ys) ++ ")"
       else let (SPair a b) = xs
              in "(" ++ (pretty a) ++ " . " ++ (pretty b) ++ ")"
 
@@ -83,7 +83,7 @@ lambda (binds:body:_) = do
     return $ SFunc (map getIdent . toList $ binds) env body
 
 builtins :: Map.Map String SBuiltin
-builtins = Map.fromList $ [
+builtins = Map.fromList [
              ("quote", quote),
              ("lambda", lambda)
            ]
@@ -106,7 +106,7 @@ apply :: SData -> [SData] -> Scheme SEnv SData
 (SFunc binds env body) `apply` args = do
   refs <- liftIO $ mapM newIORef args
   e <- liftIO env -- Get environment of function as map
-  local (\_ -> return ((Map.fromList $ zip binds refs) `Map.union` e)) (eval body) 
+  local (\_ -> return (Map.fromList (zip binds refs) `Map.union` e)) (eval body) 
 
 eval :: SData -> Scheme SEnv SData
 eval d@(SInt n) = return d
