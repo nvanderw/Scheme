@@ -12,15 +12,20 @@ import Language.Scheme.Types
 sexpr :: Parsec Text u SData 
 sexpr = quoted <|> (try atom) <|> (try pair) <|> (try list)
 
+padded :: Parsec Text u a -> Parsec Text u a
+padded parser = do
+    spaces
+    res <- parser
+    spaces
+    return res
+
 -- Pair syntax (car . cdr)
 pair :: Parsec Text u SData
 pair = do
     char '('
-    car <- sexpr
-    spaces
+    car <- padded sexpr
     char '.'
-    spaces
-    cdr <- sexpr
+    cdr <- padded sexpr
     char ')'
     return $ SPair car cdr
 
@@ -28,7 +33,7 @@ pair = do
 list :: Parsec Text u SData
 list = do
     char '('
-    subs <- sexpr `sepBy1` (many1 space)
+    subs <- many (padded sexpr)
     char ')'
     return . foldr SPair SNil $ subs
 
