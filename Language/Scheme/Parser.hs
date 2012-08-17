@@ -38,7 +38,7 @@ list = do
     return . foldr SPair SNil $ subs
 
 atom :: Parsec Text u SData
-atom = ident <|> int <|> str <|> nil
+atom = ident <|> bool <|> int <|> str <|> nil
 
 int :: Parsec Text u SData
 int = liftM (SInt . read) $ many1 digit
@@ -48,6 +48,10 @@ ident = do
     initial <- letter
     subsequent <- many (letter <|> digit)
     return . SIdent $ (initial:subsequent)
+
+bool :: Parsec Text u SData
+-- Binding to return is not very pretty; I should clean this up
+bool = (try (string "#t") >> (return $ SBool True)) <|> (try (string "#f") >> (return $ SBool False))
 
 str :: Parsec Text u SData
 str = do
