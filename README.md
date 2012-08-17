@@ -1,5 +1,5 @@
-Nick's Lousy Scheme Implementation
-==================================
+Nick's Tiny Scheme Implementation
+=================================
 
 This is my implementation of a Scheme-like programming language in Haskell. It
 is still rather new and doesn't have a lot of features, such as:
@@ -14,10 +14,6 @@ is still rather new and doesn't have a lot of features, such as:
   builtins should be really, really easy. Builtins take an argument list and
   produce an action in the interpreter's monad, so they can do any IO action
   and make changes to the bindings.
-
-- The parser probably isn't as robust as it should be; I anticipate there are
-  cases where whitespace will cause it to fail, for instance.
-
 
 Feel free to hack on it. It's a pretty small, simple code base, which is very
 much the point.
