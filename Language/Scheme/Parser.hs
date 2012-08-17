@@ -45,8 +45,9 @@ int = liftM (SInt . read) $ many1 digit
 
 ident :: Parsec Text u SData
 ident = do
-    initial <- letter
-    subsequent <- many (letter <|> digit)
+    let extended = "!$%&*+-./:<=>?@^_~"
+    initial <- letter <|> (oneOf extended)
+    subsequent <- many (alphaNum <|> oneOf extended)
     return . SIdent $ (initial:subsequent)
 
 bool :: Parsec Text u SData
