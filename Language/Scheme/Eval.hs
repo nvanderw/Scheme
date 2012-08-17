@@ -12,6 +12,8 @@ import Control.Monad.Reader
 import Language.Scheme.Types
 import Language.Scheme.Parser
 
+import Debug.Trace
+
 -- |Convert from a list of Scheme objects to a Scheme list of those objects
 fromList :: [SData] -> SData
 fromList = foldr SPair SNil
@@ -97,7 +99,8 @@ let' :: SBuiltin
 let' (binds:body:[]) = do
     env <- ask
     let (idents, vals) = unzip . map (\((SIdent ident):val:[]) -> (ident, val)) . map toList . toList $ binds
-    (SFunc idents env body) `apply` vals
+    vals' <- mapM eval vals
+    (SFunc idents env body) `apply` vals'
 
 if' :: SBuiltin
 if' (cond:e1:e2:[]) = do
