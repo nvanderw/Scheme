@@ -21,6 +21,27 @@ data SData = SPair SData SData
            | SQuote {getQuote :: SData}
            | SNil
 
+-- The environment type screws with instance deriving, so we write our own:
+instance Eq SData where
+    SPair a b == SPair c d = (a == c) && (b == d)
+    SInt a    == SInt b    = a == b
+    SBool a   == SBool b   = a == b
+    SString a == SString b = a == b
+    SIdent a  == SIdent b  = a == b
+    SQuote a  == SQuote b  = a == b
+    SNil      == SNil      = True
+    _         == _         = False
+
+-- More boilerplate
+instance Ord SData where
+    SInt a    `compare` SInt b    = a `compare` b
+    SBool a   `compare` SBool b   = a `compare` b
+    SString a `compare` SString b = a `compare` b
+    SIdent a  `compare` SIdent b  = a `compare` b
+    SQuote a  `compare` SQuote b  = a `compare` b
+    SNil      `compare` SNil      = EQ
+
+
 -- |Bindings which are in scope
 type SEnv = IO (Map.Map String (IORef SData))
 

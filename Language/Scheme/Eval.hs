@@ -75,17 +75,63 @@ pretty xs = -- For SPair or SNil
 
 -- Builtins
 quote :: SBuiltin
-quote (n:_) = return . SQuote $ n
+quote (n:[]) = return . SQuote $ n
 
 lambda :: SBuiltin
-lambda (binds:body:_) = do
+lambda (binds:body:[]) = do
     env <- ask
     return $ SFunc (map getIdent . toList $ binds) env body
+
+begin :: SBuiltin
+begin = liftM last . mapM eval
+
+set :: SBuiltin
+set ((SIdent name):val:[]) = do
+    env <- ask
+    liftIO $ do
+      mp <- env
+      writeIORef (fromJust . Map.lookup name $ mp) val
+    return SNil
+
+let' :: SBuiltin
+let' (binds:body:[]) = do
+    env <- ask
+    let (idents, vals) = unzip . map (\((SIdent ident):val:[]) -> (ident, val)) . map toList . toList $ binds
+    (SFunc idents env body) `apply` vals
+
+if' :: SBuiltin
+if' (cond:e1:e2:[]) = do
+    (SBool b) <- eval cond
+    eval $ if b then e1 else e2
+
+-- |Turns a Haskell predicate on a list of SData into a Scheme builtin
+-- which evaluates the same predicate
+predToBuiltin :: (SData -> Bool) -> SBuiltin
+predToBuiltin pred = liftM (SBool . pred) . eval . head
+
+predToBuiltin2 :: (SData -> SData -> Bool) -> SBuiltin
+predToBuiltin2 pred (x:y:_) = liftM SBool $ liftM2 pred (eval x) (eval y)
 
 builtins :: Map.Map String SBuiltin
 builtins = Map.fromList [
              ("quote", quote),
-             ("lambda", lambda)
+             ("lambda", lambda),
+             ("begin", begin),
+             ("set!", set),
+             ("let", let'),
+             ("if", if'),
+
+             ("procedure?", predToBuiltin isFunc),
+             ("boolean?",   predToBuiltin isBool),
+             ("pair?",      predToBuiltin isPair),
+             ("list?",      predToBuiltin isList),
+             ("symbol?",    predToBuiltin isIdent),
+             ("string?",    predToBuiltin isString),
+
+             (">",          predToBuiltin2 (>)),
+             (">=",         predToBuiltin2 (>=)),
+             ("<",          predToBuiltin2 (<)),
+             ("<=",         predToBuiltin2 (<=))
            ]
 
 -- Looks up an identifier in the current environment
