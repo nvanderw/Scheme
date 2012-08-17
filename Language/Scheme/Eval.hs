@@ -208,7 +208,16 @@ apply :: SData -> [SData] -> Scheme SEnv SData
 (SFunc binds env body) `apply` args = do
   refs <- liftIO $ mapM newIORef args
   e <- liftIO env -- Get environment of function as map
-  local (\_ -> return (Map.fromList (zip binds refs) `Map.union` e)) (eval body) 
+  if (length binds) < (length args)
+    then error "Function applied to too many arguments"
+    else return ()
+  
+  -- Modified environment
+  let env' = return (Map.fromList (zip binds refs) `Map.union` e)
+
+  if (length binds) > (length args) 
+    then return $ SFunc (drop (length args) binds) env' body
+    else local (\_ -> env') (eval body) 
 
 eval :: SData -> Scheme SEnv SData
 eval d@(SInt n) = return d
