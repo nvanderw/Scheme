@@ -114,12 +114,12 @@ predToBuiltin2 pred (x:y:_) = liftM SBool $ liftM2 pred (eval x) (eval y)
 
 builtins :: Map.Map String SBuiltin
 builtins = Map.fromList [
-             ("quote", quote),
-             ("lambda", lambda),
-             ("begin", begin),
-             ("set!", set),
-             ("let", let'),
-             ("if", if'),
+             ("quote",      quote),
+             ("lambda",     lambda),
+             ("begin",      begin),
+             ("set!",       set),
+             ("let",        let'),
+             ("if",         if'),
 
              ("procedure?", predToBuiltin isFunc),
              ("boolean?",   predToBuiltin isBool),
