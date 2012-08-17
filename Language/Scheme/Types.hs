@@ -12,7 +12,7 @@ import Data.IORef
 -- |Monad representing the interpreter state
 type Scheme env = ReaderT env IO
 
-data SData = SPair SData SData
+data SData = SPair {getCar :: SData, getCdr :: SData}
            | SInt {getInt :: Integer}
            | SBool {getBool :: Bool}
            | SString {getString :: String}

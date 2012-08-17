@@ -104,6 +104,43 @@ if' (cond:e1:e2:[]) = do
     (SBool b) <- eval cond
     eval $ if b then e1 else e2
 
+-- Functions on SData types which we will convert to builtins
+
+-- Operations on the ring of integers
+addS :: SData -> SData -> SData
+(SInt a) `addS` (SInt b) = SInt (a + b)
+
+mulS :: SData -> SData -> SData
+(SInt a) `mulS` (SInt b) = SInt (a * b)
+
+negateS :: SData -> SData
+negateS (SInt a) = SInt (negate a)
+
+divS :: SData -> SData -> SData
+(SInt a) `divS` (SInt b) = SInt (a `div` b)
+
+modS :: SData -> SData -> SData
+(SInt a) `modS` (SInt b) = SInt (a `mod` b)
+
+-- Operations on booleans
+orS :: SData -> SData -> SData
+(SBool a) `orS` (SBool b) = SBool (a || b)
+
+andS :: SData -> SData -> SData
+(SBool a) `andS` (SBool b) = SBool (a && b)
+
+notS :: SData -> SData
+notS (SBool a) = SBool (not a)
+
+
+
+-- Some utility functions for converting other functions to builtins
+unaryToBuiltin :: (SData -> SData) -> SBuiltin
+unaryToBuiltin f (x:_) = return $ f x
+
+binaryToBuiltin :: (SData -> SData -> SData) -> SBuiltin
+binaryToBuiltin f (x:y:_) = return $ f x y
+
 -- |Turns a Haskell predicate on a list of SData into a Scheme builtin
 -- which evaluates the same predicate
 predToBuiltin :: (SData -> Bool) -> SBuiltin
@@ -111,6 +148,11 @@ predToBuiltin pred = liftM (SBool . pred) . eval . head
 
 predToBuiltin2 :: (SData -> SData -> Bool) -> SBuiltin
 predToBuiltin2 pred (x:y:_) = liftM SBool $ liftM2 pred (eval x) (eval y)
+
+-- |Given an associative operation and an identity element, creates
+-- a builtin which combines all of its arguments
+monoidToBuiltin :: (SData -> SData -> SData) -> SData -> SBuiltin
+monoidToBuiltin add zero args = return $ foldr add zero args
 
 builtins :: Map.Map String SBuiltin
 builtins = Map.fromList [
@@ -127,11 +169,25 @@ builtins = Map.fromList [
              ("list?",      predToBuiltin isList),
              ("symbol?",    predToBuiltin isIdent),
              ("string?",    predToBuiltin isString),
+             ("null?",      predToBuiltin isNil),
 
              (">",          predToBuiltin2 (>)),
              (">=",         predToBuiltin2 (>=)),
              ("<",          predToBuiltin2 (<)),
-             ("<=",         predToBuiltin2 (<=))
+             ("<=",         predToBuiltin2 (<=)),
+
+             ("+",          monoidToBuiltin addS (SInt 0)),
+             ("*",          monoidToBuiltin mulS (SInt 1)),
+             ("div",        binaryToBuiltin divS),
+             ("mod",        binaryToBuiltin modS),
+
+             ("cons",       binaryToBuiltin SPair),
+             ("car",        unaryToBuiltin  getCar),
+             ("cdr",        unaryToBuiltin  getCdr),
+
+             ("or",         monoidToBuiltin orS  (SBool False)),
+             ("and",        monoidToBuiltin andS (SBool True)),
+             ("not",        unaryToBuiltin notS)
            ]
 
 -- Looks up an identifier in the current environment
