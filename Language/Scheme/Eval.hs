@@ -139,10 +139,10 @@ notS (SBool a) = SBool (not a)
 
 -- Some utility functions for converting other functions to builtins
 unaryToBuiltin :: (SData -> SData) -> SBuiltin
-unaryToBuiltin f (x:_) = return $ f x
+unaryToBuiltin f (x:_) = liftM f $ eval x
 
 binaryToBuiltin :: (SData -> SData -> SData) -> SBuiltin
-binaryToBuiltin f (x:y:_) = return $ f x y
+binaryToBuiltin f (x:y:_) = liftM2 f (eval x) (eval y)
 
 -- |Turns a Haskell predicate on a list of SData into a Scheme builtin
 -- which evaluates the same predicate
@@ -155,7 +155,7 @@ predToBuiltin2 pred (x:y:_) = liftM SBool $ liftM2 pred (eval x) (eval y)
 -- |Given an associative operation and an identity element, creates
 -- a builtin which combines all of its arguments
 monoidToBuiltin :: (SData -> SData -> SData) -> SData -> SBuiltin
-monoidToBuiltin add zero args = return $ foldr add zero args
+monoidToBuiltin add zero args = liftM (foldr add zero) . mapM eval $ args
 
 builtins :: Map.Map String SBuiltin
 builtins = Map.fromList [
