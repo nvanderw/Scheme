@@ -172,6 +172,7 @@ builtins = Map.fromList [
              ("string?",    predToBuiltin isString),
              ("null?",      predToBuiltin isNil),
 
+             ("eq?",        predToBuiltin2 (==)),
              (">",          predToBuiltin2 (>)),
              (">=",         predToBuiltin2 (>=)),
              ("<",          predToBuiltin2 (<)),
