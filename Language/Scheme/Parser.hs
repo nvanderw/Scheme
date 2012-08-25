@@ -12,11 +12,20 @@ import Language.Scheme.Types
 sexpr :: Parsec Text u SData 
 sexpr = quoted <|> (try atom) <|> (try pair) <|> (try list)
 
+comment :: Parsec Text u ()
+comment = do
+    char ';'
+    manyTill anyToken newline
+    return ()
+
+whitespace :: Parsec Text u ()
+whitespace = void . many $ (void space) <|> comment
+
 padded :: Parsec Text u a -> Parsec Text u a
 padded parser = do
-    spaces
+    whitespace
     res <- parser
-    spaces
+    whitespace
     return res
 
 -- Pair syntax (car . cdr)
