@@ -142,8 +142,8 @@ unaryToBuiltin f (x:_) = liftM f $ eval x
 binaryToBuiltin :: (SData -> SData -> SData) -> SBuiltin
 binaryToBuiltin f (x:y:_) = liftM2 f (eval x) (eval y)
 
--- |Turns a Haskell predicate on a list of SData into a Scheme builtin
--- which evaluates the same predicate
+-- |Turns a Haskell predicate on an SData into a Scheme builtin which evaluates
+-- the same predicate
 predToBuiltin :: (SData -> Bool) -> SBuiltin
 predToBuiltin pred = liftM (SBool . pred) . eval . head
 
