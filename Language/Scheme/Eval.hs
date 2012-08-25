@@ -12,8 +12,6 @@ import Control.Monad.Reader
 import Language.Scheme.Types
 import Language.Scheme.Parser
 
-import Debug.Trace
-
 -- |Convert from a list of Scheme objects to a Scheme list of those objects
 fromList :: [SData] -> SData
 fromList = foldr SPair SNil
