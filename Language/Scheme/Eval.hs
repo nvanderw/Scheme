@@ -111,6 +111,9 @@ if' (cond:e1:e2:[]) = do
 addS :: SData -> SData -> SData
 (SInt a) `addS` (SInt b) = SInt (a + b)
 
+subS :: SData -> SData -> SData
+(SInt a) `subS` (SInt b) = SInt (a - b)
+
 mulS :: SData -> SData -> SData
 (SInt a) `mulS` (SInt b) = SInt (a * b)
 
@@ -180,6 +183,7 @@ builtins = Map.fromList [
 
              ("+",          monoidToBuiltin addS (SInt 0)),
              ("*",          monoidToBuiltin mulS (SInt 1)),
+             ("-",          binaryToBuiltin subS),
              ("div",        binaryToBuiltin divS),
              ("mod",        binaryToBuiltin modS),
 
