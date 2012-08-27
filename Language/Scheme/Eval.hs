@@ -1,6 +1,6 @@
 module Language.Scheme.Eval where
 
-import Prelude hiding (lookup)
+import Prelude hiding (lookup, getChar)
 
 import Data.List (foldr, unfoldr, intercalate)
 import qualified Data.Map as Map
@@ -23,6 +23,12 @@ toList = unfoldr f
     f SNil = Nothing
     f (SPair car cdr) = Just (car, cdr)
 
+fromString :: String -> SData
+fromString = fromList . map SChar
+
+toString :: SData -> String
+toString = map getChar . toList
+
 -- Some predicates
 isPair :: SData -> Bool
 isPair (SPair _ _) = True
@@ -41,9 +47,12 @@ isBool :: SData -> Bool
 isBool (SBool _) = True
 isBool _ = False
 
+isChar :: SData -> Bool
+isChar (SChar _) = True
+isChar _ = False
+
 isString :: SData -> Bool
-isString (SString _) = True
-isString _ = False
+isString s = (isList s) && (all isChar $ toList s)
 
 isIdent :: SData -> Bool
 isIdent (SIdent _) = True
@@ -61,15 +70,18 @@ isNil _ = False
 pretty :: SData -> String
 pretty (SInt n) = show n
 pretty (SBool b) = if b then "#t" else "#f"
-pretty (SString s) = show s
+pretty (SChar c) = "#\\" ++ [c]
 pretty (SIdent s) = s
 pretty (SFunc binds _ body) = "(lambda " ++ (pretty . fromList . map SIdent $ binds) ++
                               " " ++ pretty body ++ ")"
 pretty (SQuote d) = pretty d
 pretty xs = -- For SPair or SNil
     if isList xs
-      then let ys = toList xs
-             in "(" ++ (unwords . map pretty $ ys) ++ ")"
+      then if (isString xs) && (xs /= SNil)
+        then let ys = toString xs
+                 in show ys
+        else let ys = toList xs
+                 in "(" ++ (unwords . map pretty $ ys) ++ ")"
       else let (SPair a b) = xs
              in "(" ++ (pretty a) ++ " . " ++ (pretty b) ++ ")"
 
@@ -136,7 +148,11 @@ andS :: SData -> SData -> SData
 notS :: SData -> SData
 notS (SBool a) = SBool (not a)
 
-
+-- I/O
+display :: SBuiltin
+display (x:_) = (liftIO . putStr $ if (isString x) && (x /= SNil)
+                  then toString x
+                  else pretty x) >> return SNil
 
 -- Some utility functions for converting other functions to builtins
 unaryToBuiltin :: (SData -> SData) -> SBuiltin
@@ -172,6 +188,7 @@ builtins = Map.fromList [
              ("pair?",      predToBuiltin isPair),
              ("list?",      predToBuiltin isList),
              ("symbol?",    predToBuiltin isIdent),
+             ("char?",      predToBuiltin isChar),
              ("string?",    predToBuiltin isString),
              ("null?",      predToBuiltin isNil),
 
@@ -193,7 +210,9 @@ builtins = Map.fromList [
 
              ("or",         monoidToBuiltin orS  (SBool False)),
              ("and",        monoidToBuiltin andS (SBool True)),
-             ("not",        unaryToBuiltin notS)
+             ("not",        unaryToBuiltin notS),
+
+             ("display",    display)
            ]
 
 -- Looks up an identifier in the current environment
@@ -227,24 +246,26 @@ apply :: SData -> [SData] -> Scheme SEnv SData
 eval :: SData -> Scheme SEnv SData
 eval d@(SInt n) = return d
 eval d@(SBool b) = return d
-eval d@(SString s) = return d
+eval d@(SChar c) = return d
 eval d@(SQuote q) = return q
 eval d@(SIdent s) = liftM fromJust $ lookup s -- Errors if lookup fails
-eval d = let (fun:args) = toList d
-             def = do -- Default behavior
-                 fun' <- eval fun
-                 args' <- mapM eval args
-                 apply fun' args'
+eval d = if isString d
+           then return d
+           else let (fun:args) = toList d
+                    def = do -- Default behavior
+                        fun' <- eval fun
+                        args' <- mapM eval args
+                        apply fun' args'
                  
-           in case fun of
-            -- TODO: rewrite this using a monoid to handle sequencing and failure
-            (SIdent ident) -> lookup ('~':ident) >>= \trans -> case trans of
-                -- Syntax transformer
-                (Just transformer) -> eval =<< (apply transformer [d])
-                Nothing -> lookup ident >>= \fun -> case fun of
-                  -- Function application
-                  (Just _) -> def
-                  -- Builtin forms
-                  otherwise -> fromJust (Map.lookup ident builtins) args
+             in case fun of
+              -- TODO: rewrite this using a monoid to handle sequencing and failure
+              (SIdent ident) -> lookup ('~':ident) >>= \trans -> case trans of
+                  -- Syntax transformer
+                  (Just transformer) -> eval =<< (apply transformer [d])
+                  Nothing -> lookup ident >>= \fun -> case fun of
+                    -- Function application
+                    (Just _) -> def
+                    -- Builtin forms
+                    otherwise -> fromJust (Map.lookup ident builtins) args
 
-            otherwise -> def
+              otherwise -> def

@@ -10,7 +10,7 @@ import Data.Text.Lazy (Text)
 import Language.Scheme.Types
 
 sexpr :: Parsec Text u SData 
-sexpr = quoted <|> (try atom) <|> (try pair) <|> (try list)
+sexpr = quoted <|> (try atom) <|> (try pair) <|> (try list) <|> (try str) <|> (try chr)
 
 comment :: Parsec Text u ()
 comment = do
@@ -63,12 +63,15 @@ bool :: Parsec Text u SData
 -- Binding to return is not very pretty; I should clean this up
 bool = (try (string "#t") >> (return $ SBool True)) <|> (try (string "#f") >> (return $ SBool False))
 
+chr :: Parsec Text u SData
+chr = string "#\\" >> (liftM SChar anyChar)
+    
 str :: Parsec Text u SData
 str = do
     char '"'
     s <- many1 $ satisfy (/= '"')
     char '"'
-    return . SString $ s
+    return . foldr SPair SNil . map SChar . read $ "\"" ++ s ++ "\""
 
 nil :: Parsec Text u SData
 nil = char '(' >> char ')' >> return SNil
