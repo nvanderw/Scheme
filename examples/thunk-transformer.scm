@@ -17,5 +17,4 @@
                    id))
              '(lambda () ?))))))
 
-    ((thunk (+ 1 2))) ; Create a thunk and evaluate it
-  ))
+    ((thunk (+ 1 2))))) ; Create a thunk and evaluate it
