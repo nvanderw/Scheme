@@ -15,7 +15,7 @@ import Text.Parsec
 
 main = do
     input <- Text.getContents
-    case parse sexpr "stdin" input of
+    case parse scheme "stdin" input of
       Right parsed -> do
         result <- runReaderT (eval parsed) (return Map.empty)
         putStrLn . pretty $ result

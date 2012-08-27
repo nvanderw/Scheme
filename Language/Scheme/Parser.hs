@@ -1,5 +1,5 @@
 module Language.Scheme.Parser (SData (..),
-                               sexpr)
+                               scheme)
 where
 
 
@@ -8,6 +8,9 @@ import Text.Parsec
 import Text.Parsec.Text.Lazy
 import Data.Text.Lazy (Text)
 import Language.Scheme.Types
+
+scheme :: Parsec Text u SData
+scheme = padded sexpr
 
 sexpr :: Parsec Text u SData 
 sexpr = quoted <|> (try atom) <|> (try pair) <|> (try list) <|> (try str) <|> (try chr)
