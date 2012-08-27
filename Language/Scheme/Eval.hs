@@ -199,10 +199,9 @@ builtins = Map.fromList [
 -- Looks up an identifier in the current environment
 lookup :: String -> Scheme SEnv (Maybe SData)
 lookup ident = do
-    env <- ask
+    env <- join $ liftM liftIO ask
     liftIO $ do
-      mp <- env
-      let req = Map.lookup ident mp
+      let req = Map.lookup ident env
       if isNothing req
         then return Nothing
         else liftM Just . readIORef . fromJust $ req
@@ -232,12 +231,20 @@ eval d@(SString s) = return d
 eval d@(SQuote q) = return q
 eval d@(SIdent s) = liftM fromJust $ lookup s -- Errors if lookup fails
 eval d = let (fun:args) = toList d
-           in if (isIdent fun) && (Map.member (getIdent fun) builtins)
-                -- Special forms
-                then let (Just builtin) = Map.lookup (getIdent fun) builtins
-                       in builtin args
-                -- Normal function application
-                else do
-                  fun' <- eval fun
-                  args' <- mapM eval args
-                  apply fun' args'
+             def = do -- Default behavior
+                 fun' <- eval fun
+                 args' <- mapM eval args
+                 apply fun' args'
+                 
+           in case fun of
+            -- TODO: rewrite this using a monoid to handle sequencing and failure
+            (SIdent ident) -> lookup ('~':ident) >>= \trans -> case trans of
+                -- Syntax transformer
+                (Just transformer) -> eval =<< (apply transformer [d])
+                Nothing -> lookup ident >>= \fun -> case fun of
+                  -- Function application
+                  (Just _) -> def
+                  -- Builtin forms
+                  otherwise -> fromJust (Map.lookup ident builtins) args
+
+            otherwise -> def
